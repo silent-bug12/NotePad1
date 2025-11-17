@@ -62,7 +62,8 @@ public class NoteEditor extends Activity {
         new String[] {
             NotePad.Notes._ID,
             NotePad.Notes.COLUMN_NAME_TITLE,
-            NotePad.Notes.COLUMN_NAME_NOTE
+            NotePad.Notes.COLUMN_NAME_NOTE,
+            NotePad.Notes.COLUMN_NAME_LAST_OPENED
     };
 
     // A label for the saved state of the activity
@@ -305,8 +306,28 @@ public class NoteEditor extends Activity {
             setTitle(getText(R.string.error_title));
             mText.setText(getText(R.string.error_message));
         }
+        // 记录最后打开时间（仅在编辑或查看模式下更新）
+        if (mState == STATE_EDIT) {
+            updateLastOpenedTime();
+        }
     }
 
+    /**
+     * 更新当前笔记的最后打开时间为系统当前时间
+     */
+    private void updateLastOpenedTime() {
+        ContentValues values = new ContentValues();
+        long currentTime = System.currentTimeMillis(); // 获取当前时间戳（毫秒）
+        values.put(NotePad.Notes.COLUMN_NAME_LAST_OPENED, currentTime);
+
+        // 通过ContentProvider更新数据库
+        getContentResolver().update(
+                mUri, // 当前笔记的Uri
+                values,
+                null,
+                null
+        );
+    }
     /**
      * This method is called when an Activity loses focus during its normal operation, and is then
      * later on killed. The Activity has a chance to save its state so that the system can restore
@@ -431,23 +452,40 @@ public class NoteEditor extends Activity {
      * @return True to indicate that the item was processed, and no further work is necessary. False
      * to proceed to further processing as indicated in the MenuItem object.
      */
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle all of the possible menu actions.
         int id = item.getItemId();
-        if(id== R.id.menu_save) {
+        if (id == R.id.menu_save) {
             String text = mText.getText().toString();
-            updateNote(text, null);
+            long now = System.currentTimeMillis();
+
+            ContentValues values = new ContentValues();
+            values.put(NotePad.Notes.COLUMN_NAME_NOTE, text);
+            values.put(NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE, now);
+
+            // 如果是新建笔记（mUri 是 notes 列表 URI），则也设创建时间
+            if (mState == STATE_EDIT) {
+                // 编辑模式：只更新内容和修改时间（由 Provider 处理）
+                getContentResolver().update(mUri, values, null, null);
+            } else if (mState == STATE_INSERT) {
+                // 插入模式：可以不设 CREATE_DATE，让 Provider 自动填充
+                // 但如果你想显式设置，也可以加上：
+                values.put(NotePad.Notes.COLUMN_NAME_CREATE_DATE, now);
+                Uri newUri = getContentResolver().insert(mUri, values);
+                // 可选：更新 mUri 为新 URI
+            }
+
             finish();
+            return true; // 注意：这里应返回 true 表示已处理
         } else if (id == R.id.menu_delete) {
             deleteNote();
             finish();
+            return true;
         } else if (id == R.id.menu_revert) {
             cancelNote();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
 //BEGIN_INCLUDE(paste)
     /**
      * A helper method that replaces the note's data with the contents of the clipboard.

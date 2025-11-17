@@ -44,6 +44,7 @@ public final class NotePad {
          * The table name offered by this provider
          */
         public static final String TABLE_NAME = "notes";
+        public static final String COLUMN_NAME_LAST_OPENED = "last_opened";
 
         /*
          * URI definitions

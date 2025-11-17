@@ -63,7 +63,7 @@ public class NotePadProvider extends ContentProvider implements PipeDataWriter<C
     /**
      * The database version
      */
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     /**
      * A projection map used to select columns from the database
@@ -138,6 +138,7 @@ public class NotePadProvider extends ContentProvider implements PipeDataWriter<C
         // given a string. The two are usually equal.
         sNotesProjectionMap = new HashMap<String, String>();
 
+        sNotesProjectionMap.put(NotePad.Notes.COLUMN_NAME_LAST_OPENED, NotePad.Notes.COLUMN_NAME_LAST_OPENED);
         // Maps the string "_ID" to the column name "_ID"
         sNotesProjectionMap.put(NotePad.Notes._ID, NotePad.Notes._ID);
 
@@ -178,48 +179,49 @@ public class NotePadProvider extends ContentProvider implements PipeDataWriter<C
     */
    static class DatabaseHelper extends SQLiteOpenHelper {
 
-       DatabaseHelper(Context context) {
+        // 数据库名称和版本号（假设原有版本号为1，此处升级为2以支持新列）
+        private static final String DATABASE_NAME = "notes.db";
+        private static final int DATABASE_VERSION = 2; // 版本号从1升级到2
 
-           // calls the super constructor, requesting the default cursor factory.
-           super(context, DATABASE_NAME, null, DATABASE_VERSION);
-       }
+        DatabaseHelper(Context context) {
+            // 调用父类构造函数，指定数据库名称、默认游标工厂和版本号
+            super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        }
 
-       /**
-        *
-        * Creates the underlying database with table name and column names taken from the
-        * NotePad class.
-        */
-       @Override
-       public void onCreate(SQLiteDatabase db) {
-           db.execSQL("CREATE TABLE " + NotePad.Notes.TABLE_NAME + " ("
-                   + NotePad.Notes._ID + " INTEGER PRIMARY KEY,"
-                   + NotePad.Notes.COLUMN_NAME_TITLE + " TEXT,"
-                   + NotePad.Notes.COLUMN_NAME_NOTE + " TEXT,"
-                   + NotePad.Notes.COLUMN_NAME_CREATE_DATE + " INTEGER,"
-                   + NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE + " INTEGER"
-                   + ");");
-       }
+        /**
+         * 创建数据库表，包含新增的last_opened列
+         */
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE " + NotePad.Notes.TABLE_NAME + " ("
+                    + NotePad.Notes._ID + " INTEGER PRIMARY KEY,"
+                    + NotePad.Notes.COLUMN_NAME_TITLE + " TEXT,"
+                    + NotePad.Notes.COLUMN_NAME_NOTE + " TEXT,"
+                    + NotePad.Notes.COLUMN_NAME_CREATE_DATE + " INTEGER,"
+                    + NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE + " INTEGER,"
+                    // 新增：最后打开时间列，默认值为0（表示从未打开）
+                    + NotePad.Notes.COLUMN_NAME_LAST_OPENED + " INTEGER DEFAULT 0"
+                    + ");");
+        }
 
-       /**
-        *
-        * Demonstrates that the provider must consider what happens when the
-        * underlying datastore is changed. In this sample, the database is upgraded the database
-        * by destroying the existing data.
-        * A real application should upgrade the database in place.
-        */
-       @Override
-       public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        /**
+         * 数据库升级逻辑：为旧版本表添加last_opened列（保留原有数据）
+         */
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            // 日志记录升级过程
+            Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
+                    + newVersion + ", preserving old data");
 
-           // Logs that the database is being upgraded
-           Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
-                   + newVersion + ", which will destroy all old data");
+            // 仅在旧版本<2时执行升级（避免重复执行）
+            if (oldVersion < 2) {
+                // 为现有表添加last_opened列，默认值0
+                db.execSQL("ALTER TABLE " + NotePad.Notes.TABLE_NAME
+                        + " ADD COLUMN " + NotePad.Notes.COLUMN_NAME_LAST_OPENED
+                        + " INTEGER DEFAULT 0");
+            }
 
-           // Kills the table and existing data
-           db.execSQL("DROP TABLE IF EXISTS notes");
-
-           // Recreates the database with a new version
-           onCreate(db);
-       }
+        }
    }
 
    /**
