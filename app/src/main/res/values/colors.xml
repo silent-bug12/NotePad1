@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 便签颜色 -->
+    <color name="note_yellow">#FFFFE082</color>
+    <color name="note_blue">#FF81D4FA</color>
+    <color name="note_green">#FFA5D6A7</color>
+    <color name="note_orange">#FFFFCCBC</color>
+    <color name="note_purple">#FFE1BEE7</color>
+    <color name="note_cyan">#FFB2EBF2</color>
+
+    <!-- 背景色（如果做深色模式） -->
+    <color name="background_light">#FFFFFF</color>
+    <color name="background_dark">#1E1E1E</color>
+    <color name="text_light">#000000</color>
+    <color name="text_dark">#FFFFFF</color>
+</resources>
