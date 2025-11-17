@@ -94,7 +94,11 @@ private void updateNote(String text, String title) {
 支持 Android 5.0（API 21）及以上版本。
 数据库升级时通过 ALTER TABLE 安全添加新列，确保原有笔记数据不丢失。
 
+
+
 六、运行结果显示
+
+
 <img width="248" height="500" alt="1" src="https://github.com/user-attachments/assets/62e5b91e-db00-4053-9326-54bfeb32874b" />
 <img width="245" height="474" alt="2" src="https://github.com/user-attachments/assets/c0aab5ce-4a79-4433-8003-54514294dbde" />
 <img width="244" height="506" alt="3" src="https://github.com/user-attachments/assets/03e24998-6018-4298-8188-9971cc45c694" />
