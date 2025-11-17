@@ -431,23 +431,40 @@ public class NoteEditor extends Activity {
      * @return True to indicate that the item was processed, and no further work is necessary. False
      * to proceed to further processing as indicated in the MenuItem object.
      */
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle all of the possible menu actions.
         int id = item.getItemId();
-        if(id== R.id.menu_save) {
+        if (id == R.id.menu_save) {
             String text = mText.getText().toString();
-            updateNote(text, null);
+            long now = System.currentTimeMillis();
+
+            ContentValues values = new ContentValues();
+            values.put(NotePad.Notes.COLUMN_NAME_NOTE, text);
+            values.put(NotePad.Notes.COLUMN_NAME_MODIFICATION_DATE, now);
+
+            // 如果是新建笔记（mUri 是 notes 列表 URI），则也设创建时间
+            if (mState == STATE_EDIT) {
+                // 编辑模式：只更新内容和修改时间（由 Provider 处理）
+                getContentResolver().update(mUri, values, null, null);
+            } else if (mState == STATE_INSERT) {
+                // 插入模式：可以不设 CREATE_DATE，让 Provider 自动填充
+                // 但如果你想显式设置，也可以加上：
+                values.put(NotePad.Notes.COLUMN_NAME_CREATE_DATE, now);
+                Uri newUri = getContentResolver().insert(mUri, values);
+                // 可选：更新 mUri 为新 URI
+            }
+
             finish();
+            return true; // 注意：这里应返回 true 表示已处理
         } else if (id == R.id.menu_delete) {
             deleteNote();
             finish();
+            return true;
         } else if (id == R.id.menu_revert) {
             cancelNote();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
 //BEGIN_INCLUDE(paste)
     /**
      * A helper method that replaces the note's data with the contents of the clipboard.
